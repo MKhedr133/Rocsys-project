@@ -10,7 +10,7 @@ class PlacementUtils:
         # Set GPIO numbering mode
         gpio.setmode(gpio.BOARD)
 
-        # Set pins as output and define them as PWM pins
+        # Set pins as output and define them as PWM pins for servomotors
         pin_rx = 12
         pin_ry = 13
         pin_rz = 17
@@ -26,6 +26,33 @@ class PlacementUtils:
         self.servo_rx.start(0)
         self.servo_ry.start(0)
         self.servo_rz.start(0)
+
+        # Set pins as output for the TMC2208
+        dir_pin_z1 = 0
+        step_pin_z1 = 1
+        en_pin_z1 = 2
+        gpio.setup(dir_pin_z1, gpio.OUT)
+        gpio.setup(step_pin_z1, gpio.OUT)
+        gpio.setup(en_pin_z1, gpio.OUT)
+
+        dir_pin_z2 = 3
+        step_pin_z2 = 4
+        en_pin_z2 = 5
+        gpio.setup(dir_pin_z2, gpio.OUT)
+        gpio.setup(step_pin_z2, gpio.OUT)
+        gpio.setup(en_pin_z2, gpio.OUT)
+
+        dir_pin_y = 6
+        step_pin_y = 7
+        en_pin_y = 8
+        gpio.setup(dir_pin_y, gpio.OUT)
+        gpio.setup(step_pin_y, gpio.OUT)
+        gpio.setup(en_pin_y, gpio.OUT)
+
+        # Set the initial state for the enable pin
+        gpio.output(en_pin_z1, gpio.HIGH)
+        gpio.output(en_pin_z2, gpio.HIGH)
+        gpio.output(en_pin_y, gpio.HIGH)
 
     def ask_user(self) -> str:
         """ Asks the user's permission to go to the next pose.
@@ -54,7 +81,7 @@ class PlacementUtils:
         for i in range(len(rotation_axis)):
             rotation_axis = rotation_axis[i]
             if rotation_axis == 'rx':
-                self.servo_rx.ChangeDutyCycle(2+(rx/18))
+                self.servo_rx.ChangeDutyCycle(2 + (rx / 18))
             elif rotation_axis == 'ry':
                 self.servo_ry.ChangeDutyCycle(2 + (ry / 18))
             elif rotation_axis == 'rz':
