@@ -1,6 +1,6 @@
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter, Namespace
 from typing import Optional
-
+from utils import PlacementUtils
 
 def parse_args() -> Namespace:
     """ Parses the command line arguments.
@@ -36,10 +36,10 @@ def main(args: Optional[Namespace] = None):
 
     # Saving args parameters to variables.
     auto = args.auto
+    demo_class_instance = PlacementUtils(auto)
 
-    if auto is True:
-        # automatic placement without asking the user
-        pass
-    else:
-        pass
-        # it will ask everytime
+    try:
+        demo_class_instance = PlacementUtils(auto)
+
+    except KeyboardInterrupt:
+        demo_class_instance.end_demonstration()
