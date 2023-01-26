@@ -6,27 +6,29 @@ class PlacementUtils:
     """ This class contains the functions that the main.py executes for automatic placement.
     """
 
-    def __init__(self, auto_option: bool) -> None:
+    def __init__(self, auto_option, frequency_servos):
         """ This is the initialization part when a class instance is called.
         """
         self.auto_option = auto_option
+        self.high = gpio.HIGH
+        self.low = gpio.LOW
 
         # Set GPIO numbering mode
-        gpio.setmode(gpio.BOARD)
+        gpio.setmode(gpio.BCM)
 
         # Set pins as output and define them as PWM pins for servomotors
-        pin_rx = 12
-        pin_ry = 13
-        pin_rz = 17
-        frequency = 50
-        gpio.setup(pin_rx, gpio.OUTPUT)
-        gpio.setup(pin_ry, gpio.OUTPUT)
-        gpio.setup(pin_rz, gpio.OUTPUT)
-        self.servo_rx = gpio.PWM(pin_rx, frequency)
-        self.servo_ry = gpio.PWM(pin_ry, frequency)
-        self.servo_rz = gpio.PWM(pin_rz, frequency)
+        self.pin_rx = 12
+        self.pin_ry = 13
+        self.pin_rz = 14
+        self.frequency_servos = frequency_servos
+        gpio.setup(self.pin_rx, gpio.OUT)
+        gpio.setup(self.pin_ry, gpio.OUT)
+        gpio.setup(self.pin_rz, gpio.OUT)
+        self.servo_rx = gpio.PWM(self.pin_rx, self.frequency_servos)
+        self.servo_ry = gpio.PWM(self.pin_ry, self.frequency_servos)
+        self.servo_rz = gpio.PWM(self.pin_rz, self.frequency_servos)
 
-        # Start PWM running with value 0 (servo off)
+        # Start the PWM
         self.servo_rx.start(0)
         self.servo_ry.start(0)
         self.servo_rz.start(0)
@@ -53,10 +55,13 @@ class PlacementUtils:
         gpio.setup(self.step_pin_y, gpio.OUT)
         gpio.setup(self.en_pin_y, gpio.OUT)
 
+        self.cw = self.low
+        self.ccw = self.high
+
         # Set the initial state for the enable pin
-        gpio.output(self.en_pin_z1, gpio.HIGH)
-        gpio.output(self.en_pin_z2, gpio.HIGH)
-        gpio.output(self.en_pin_y, gpio.HIGH)
+        gpio.output(self.en_pin_z1, self.low)
+        gpio.output(self.en_pin_z2, self.low)
+        gpio.output(self.en_pin_y, self.low)
 
         # Set limit switch pins as input
         self.limit_switch_pin_z1 = 9
@@ -69,7 +74,10 @@ class PlacementUtils:
         self.home_z2 = False
         self.home_y = False
 
-    def ask_user(self) -> str:
+        self.delay_stepper = 0.0001
+        self.delay_servo = 0.5
+
+    def ask_user(self):
         """ Asks the user's permission to go to the next pose.
 
             Returns:
@@ -82,7 +90,7 @@ class PlacementUtils:
             return answer
 
     @staticmethod
-    def calculate_stepper_steps(distance: float) -> int:
+    def calculate_stepper_steps(distance):
         """ Calculates stepper motor steps using the pitch of the lead-screw and the motor's step angle.
 
         Args:
@@ -94,59 +102,106 @@ class PlacementUtils:
         stepper_steps = int((distance * 360) / (2 * 1.8))
         return stepper_steps
 
-    def move_steppers_z(self, direction: str, distance: float) -> None:
+    def move_steppers_z(self, direction, distance) -> None:
         """ Determines the direction of the two stepper motors on the z-axis and moves to the specified distance.
 
         Args:
-            direction: The direction the stepper motors will be moving. (CW: down, CCW: up)
+            direction: The direction the stepper motors will be moving. (cw: down, ccw: up)
             distance: The distance the stepper motors will be moving in millimeters.
         """
-        if direction == 'CW':
-            gpio.output(self.dir_pin_z1, gpio.HIGH)
-            gpio.output(self.dir_pin_z2, gpio.HIGH)
+        if direction == 'cw':
+            gpio.output(self.dir_pin_z1, self.cw)
+            gpio.output(self.dir_pin_z2, self.cw)
         else:
-            gpio.output(self.dir_pin_z1, gpio.LOW)
-            gpio.output(self.dir_pin_z2, gpio.LOW)
+            gpio.output(self.dir_pin_z1, self.ccw)
+            gpio.output(self.dir_pin_z2, self.ccw)
 
         steps = self.calculate_stepper_steps(distance)
 
         for i in range(steps):
-            gpio.output(self.step_pin_z1, gpio.HIGH)
-            gpio.output(self.step_pin_z2, gpio.HIGH)
-            sleep(0.001)
-            gpio.output(self.step_pin_z1, gpio.LOW)
-            gpio.output(self.step_pin_z2, gpio.LOW)
-            sleep(0.001)
+            gpio.output(self.step_pin_z1, self.high)
+            gpio.output(self.step_pin_z2, self.high)
+            sleep(self.delay_stepper)
+            gpio.output(self.step_pin_z1, self.low)
+            gpio.output(self.step_pin_z2, self.low)
+            sleep(self.delay_stepper)
 
-    def move_stepper_y(self, direction: str, distance: float) -> None:
+    def move_stepper_y(self, direction, distance):
         """ Determines the direction of the stepper motor on the y-axis and moves to the specified distance.
 
                Args:
-                   direction: The direction the stepper motors will be moving. (CW: right, CCW: left)
+                   direction: The direction the stepper motors will be moving. (cw: right, ccw: left)
                    distance: The distance the stepper motors will be moving in millimeters.
         """
-        if direction == 'CW':
-            gpio.output(self.dir_pin_y, gpio.HIGH)
+        if direction == 'cw':
+            gpio.output(self.dir_pin_y, self.cw)
         else:
-            gpio.output(self.dir_pin_y, gpio.LOW)
+            gpio.output(self.dir_pin_y, self.ccw)
 
         steps = self.calculate_stepper_steps(distance)
 
         for i in range(steps):
-            gpio.output(self.step_pin_y, gpio.HIGH)
-            sleep(0.001)
-            gpio.output(self.step_pin_y, gpio.LOW)
-            sleep(0.001)
+            gpio.output(self.step_pin_y, self.high)
+            sleep(self.delay_stepper)
+            gpio.output(self.step_pin_y, self.low)
+            sleep(self.delay_stepper)
 
-    def home(self) -> None:
+    def rotate_servo_rx(self, angle):
+        """ Rotates the servo in the x-axis with desired angles
+
+        Args:
+            angle: The to be rotated angle in degrees.
+        """
+        angle = int(angle)
+        duty = angle / 18 + 2
+
+        gpio.output(self.pin_rx, True)
+        self.servo_rx.ChangeDutyCycle(duty)
+        sleep(self.delay_servo)
+        gpio.output(self.pin_rx, False)
+        self.servo_rx.ChangeDutyCycle(0)
+
+    def rotate_servo_ry(self, angle):
+        """ Rotates the servo in the y-axis with desired angles
+
+        Args:
+            angle: The to be rotated angle in degrees.
+        """
+        angle = int(angle)
+        duty = angle / 18 + 2
+
+        gpio.output(self.pin_ry, True)
+        self.servo_ry.ChangeDutyCycle(duty)
+        sleep(self.delay_servo)
+        gpio.output(self.pin_ry, False)
+        self.servo_ry.ChangeDutyCycle(0)
+
+    def rotate_servo_rz(self, angle):
+        """ Rotates the servo in the y-axis with desired angles
+
+        Args:
+            angle: The to be rotated angle in degrees.
+        """
+        angle = int(angle)
+        duty = angle / 18 + 2
+
+        gpio.output(self.pin_rz, True)
+        self.servo_rz.ChangeDutyCycle(duty)
+        sleep(self.delay_servo)
+        gpio.output(self.pin_rz, False)
+        self.servo_rz.ChangeDutyCycle(0)
+
+    def home(self):
         """ The homing sequence of the program.
         """
         # Rotates the servo's to 0 degrees
-        self.rotate_servos(['rx', 'ry', 'rz'], [0, 0, 0])
+        self.rotate_servo_rx(0)
+        self.rotate_servo_ry(0)
+        self.rotate_servo_rz(0)
 
         # Moves the steppers 40 mm from the limit switch to be able to home
-        self.move_steppers_z('CW', 40)
-        self.move_stepper_y('CW', 40)
+        self.move_steppers_z('ccw', 40)
+        self.move_stepper_y('ccw', 40)
 
         # The steppers move until all limit switches are pressed
         while True:
@@ -166,54 +221,36 @@ class PlacementUtils:
                 self.home_y = False
 
             if not self.home_z1:
-                gpio.output(self.dir_pin_z1, gpio.LOW)
-                gpio.output(self.step_pin_z1, gpio.HIGH)
-                sleep(0.001)
-                gpio.output(self.step_pin_z1, gpio.LOW)
+                gpio.output(self.dir_pin_z1, self.cw)
+                gpio.output(self.step_pin_z1, self.high)
+                sleep(self.delay_stepper)
+                gpio.output(self.step_pin_z1, self.low)
 
             if not self.home_z2:
-                gpio.output(self.dir_pin_z2, gpio.LOW)
-                gpio.output(self.step_pin_z2, gpio.HIGH)
-                sleep(0.001)
-                gpio.output(self.step_pin_z2, gpio.LOW)
+                gpio.output(self.dir_pin_z2, self.cw)
+                gpio.output(self.step_pin_z2, self.high)
+                sleep(self.delay_stepper)
+                gpio.output(self.step_pin_z2, self.low)
 
             if not self.home_y:
-                gpio.output(self.dir_pin_y, gpio.LOW)
-                gpio.output(self.step_pin_y, gpio.HIGH)
-                sleep(0.001)
-                gpio.output(self.step_pin_y, gpio.LOW)
+                gpio.output(self.dir_pin_y, self.cw)
+                gpio.output(self.step_pin_y, self.high)
+                sleep(self.delay_stepper)
+                gpio.output(self.step_pin_y, self.low)
 
             if self.home_z1 and self.home_z2 and self.home_y:
                 break
 
-    def rotate_servos(self, rotation_axis: list, angle: list) -> None:
-        """ Rotates one or more servo with desired angles
-
-        Args:
-            rotation_axis: Definition to which servo should rotated (rx, ry, rz).
-            angle: The to be rotated angle in degrees.
+    def stop_servos(self):
+        """ Stops the PWM of the servomotors.
         """
-        rx, ry, rz = angle
-
-        for i in range(len(rotation_axis)):
-            rotation_axis = rotation_axis[i]
-            if rotation_axis == 'rx':
-                self.servo_rx.ChangeDutyCycle(2 + (rx / 18))
-            elif rotation_axis == 'ry':
-                self.servo_ry.ChangeDutyCycle(2 + (ry / 18))
-            elif rotation_axis == 'rz':
-                self.servo_rz.ChangeDutyCycle(2 + (rz / 18))
-
-        sleep(0.5)
-        self.servo_rx.ChangeDutyCycle(0)
-        self.servo_ry.ChangeDutyCycle(0)
-        self.servo_rz.ChangeDutyCycle(0)
-
-    def end_demonstration(self):
         self.servo_rx.stop()
         self.servo_ry.stop()
         self.servo_rz.stop()
 
+    def stop_steppers(self):
+        """ Disables the step and enable pins of the stepper motors.
+        """
         gpio.output(self.step_pin_z1, gpio.LOW)
         gpio.output(self.step_pin_z2, gpio.LOW)
         gpio.output(self.step_pin_y, gpio.LOW)
@@ -222,4 +259,10 @@ class PlacementUtils:
         gpio.output(self.en_pin_z2, gpio.LOW)
         gpio.output(self.en_pin_y, gpio.LOW)
 
+    def end_demonstration(self):
+        """ Stops the servo and stepper motors and clears gpio addresses.
+        """
+        self.stop_servos()
+        self.stop_steppers()
         gpio.cleanup()
+        
