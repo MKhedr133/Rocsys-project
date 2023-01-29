@@ -18,22 +18,13 @@ def parse_args():
         '-auto',
         type=bool,
         metavar='-automatic_placement',
-        required=True,
+        required=False,
         default=True,
         help="This parameter decides if the script going to ask the user everytime "
              "the calibration board going to a new pose. "
              "True: it will not ask the user"
              "False: it will"
     )
-    parser.add_argument(
-        '-freq_servos',
-        type=int,
-        metavar='frequency_servos',
-        required=False,
-        default=100,
-        help="The PWM frequency for the servomotors. It can only be between 50-200 Hertz."
-    )
-
     # Parse arguments.
     args = parser.parse_args()
     return args
@@ -45,12 +36,12 @@ def main(args: Optional[Namespace] = None):
 
     # Saving args parameters to variables.
     auto = args.auto
-    freq_servos = args.freq_servos
-
-    demo_class_instance = PlacementUtils(auto, freq_servos)
+    demo_class_instance = PlacementUtils(auto)
 
     try:
-        pass
+        demo_class_instance.home()
+        demo_class_instance.demonstration()
+        demo_class_instance.end_demonstration()
 
     except KeyboardInterrupt:
         demo_class_instance.end_demonstration()
