@@ -1,8 +1,9 @@
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter, Namespace
 from typing import Optional
+from utils import PlacementUtils
 
 
-def parse_args() -> Namespace:
+def parse_args():
     """ Parses the command line arguments.
 
     Returns:
@@ -17,14 +18,13 @@ def parse_args() -> Namespace:
         '-auto',
         type=bool,
         metavar='-automatic_placement',
-        required=True,
-        default=False,
+        required=False,
+        default=True,
         help="This parameter decides if the script going to ask the user everytime "
              "the calibration board going to a new pose. "
              "True: it will not ask the user"
              "False: it will"
     )
-
     # Parse arguments.
     args = parser.parse_args()
     return args
@@ -36,10 +36,12 @@ def main(args: Optional[Namespace] = None):
 
     # Saving args parameters to variables.
     auto = args.auto
+    demo_class_instance = PlacementUtils(auto)
 
-    if auto is True:
-        # automatic placement without asking the user
-        pass
-    else:
-        pass
-        # it will ask everytime
+    try:
+        demo_class_instance.home()
+        demo_class_instance.demonstration()
+        demo_class_instance.end_demonstration()
+
+    except KeyboardInterrupt:
+        demo_class_instance.end_demonstration()
