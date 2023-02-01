@@ -25,23 +25,37 @@ def parse_args():
              "True: it will not ask the user"
              "False: it will"
     )
+    parser.add_argument(
+        '-freq_servos',
+        type=int,
+        metavar='frequency_servos',
+        required=False,
+        default=50,
+        help="The PWM frequency for the servomotors. It can only be between 50-200 Hertz."
+    )
+
     # Parse arguments.
     args = parser.parse_args()
     return args
 
 
-def main(args: Optional[Namespace] = None):
+def main(args):
     if args is None:
         args = parse_args()
 
     # Saving args parameters to variables.
     auto = args.auto
-    demo_class_instance = PlacementUtils(auto)
+    freq_servos = args.freq_servos
+
+    demo_class_instance = PlacementUtils(auto, freq_servos)
 
     try:
-        demo_class_instance.home()
-        demo_class_instance.demonstration()
+        demo_class_instance.move_stepper_y('left', 200)
+        demo_class_instance.move_stepper_y('right', 200)
         demo_class_instance.end_demonstration()
 
     except KeyboardInterrupt:
         demo_class_instance.end_demonstration()
+
+main(None)
+
